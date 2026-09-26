@@ -50,4 +50,26 @@ describe('HireNova Backend Foundation API', () => {
     expect(res.status).toBe(200);
     expect(res.body.user.role).toBe('candidate');
   });
+
+  it('POST /api/auth/sync-profile should validate required fields', async () => {
+    const res = await request(app)
+      .post('/api/auth/sync-profile')
+      .send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('BadRequest');
+  });
+
+  it('POST /api/auth/sync-profile should return synced recruiter user payload', async () => {
+    const res = await request(app)
+      .post('/api/auth/sync-profile')
+      .send({
+        email: 'recruiter@acme.com',
+        role: 'recruiter',
+        fullName: 'Jane Recruiter',
+        companyName: 'Acme Corp',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.user.role).toBe('recruiter');
+    expect(res.body.user.email).toBe('recruiter@acme.com');
+  });
 });

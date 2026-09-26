@@ -4,13 +4,16 @@ import { env } from '../config/env.js';
 let supabaseClient: SupabaseClient | null = null;
 let supabaseAdminClient: SupabaseClient | null = null;
 
-const isConfigured =
+export const isSupabaseConfigured = Boolean(
   env.SUPABASE_URL &&
   !env.SUPABASE_URL.includes('placeholder') &&
   env.SUPABASE_ANON_KEY &&
-  !env.SUPABASE_ANON_KEY.includes('placeholder');
+  !env.SUPABASE_ANON_KEY.includes('placeholder') &&
+  env.SUPABASE_SERVICE_ROLE_KEY &&
+  !env.SUPABASE_SERVICE_ROLE_KEY.includes('placeholder')
+);
 
-if (isConfigured) {
+if (isSupabaseConfigured) {
   supabaseClient = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
   supabaseAdminClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
@@ -45,7 +48,7 @@ export const checkSupabaseConnection = async (): Promise<{
   connected: boolean;
   message: string;
 }> => {
-  if (!isConfigured) {
+  if (!isSupabaseConfigured) {
     return {
       connected: false,
       message: 'Supabase credentials are not yet configured (using development placeholder).',
