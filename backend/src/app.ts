@@ -2,6 +2,8 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
+import { jobsRouter } from './routes/jobs.js';
+import { applicationsRouter } from './routes/applications.js';
 import { env } from './config/env.js';
 
 export const createApp = (): Express => {
@@ -18,6 +20,8 @@ export const createApp = (): Express => {
   // Routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/jobs', jobsRouter);
+  app.use('/api/applications', applicationsRouter);
 
   // Root welcome
   app.get('/', (_req: Request, res: Response) => {
