@@ -177,3 +177,196 @@ export async function fetchAllApplications(): Promise<Application[]> {
   const data = await response.json();
   return data.applications || [];
 }
+
+// Interview Sessions
+export interface InterviewSession {
+  id: string;
+  applicationId: string;
+  jobId: string;
+  candidateId: string;
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  linkToken: string;
+  expiresAt: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'expired';
+  createdAt: string;
+}
+
+export interface GeneratedQuestion {
+  id: string;
+  type: 'mcq' | 'coding' | 'speaking' | 'scenario';
+  text: string;
+  options?: string[];
+  correctAnswer?: string;
+  testCases?: { input: string; expectedOutput: string; isHidden: boolean }[];
+  scoringRubric?: string;
+  timeLimit?: number;
+}
+
+export interface ScoreReport {
+  sessionId: string;
+  applicationId: string;
+  totalScore: number;
+  phaseBreakdown: Record<string, number>;
+  proctoringFlags: number;
+  recommendation: 'strong_hire' | 'hire' | 'maybe' | 'no_hire';
+  strengths: string[];
+  improvements: string[];
+  summary: string;
+  generatedAt: string;
+}
+
+export interface SessionVerificationResponse {
+  session: InterviewSession;
+  job: Job;
+  application: Application;
+  phases: InterviewPhaseConfig[];
+}
+
+export async function fetchSessionByToken(token: string): Promise<SessionVerificationResponse> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${token}`, { cache: 'no-store' });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to verify interview token (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function createInterviewSession(
+  applicationId: string,
+  expiryHours: number = 72
+): Promise<{ session: InterviewSession; interviewUrl: string }> {
+  const response = await fetch(`${API_BASE_URL}/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ applicationId, expiryHours }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to create interview session');
+  }
+  return response.json();
+}
+
+export async function fetchSessionByApplication(applicationId: string): Promise<{
+  session: InterviewSession;
+  report?: ScoreReport;
+  proctoringFlagsCount: number;
+}> {
+  const response = await fetch(`${API_BASE_URL}/sessions/application/${applicationId}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch session for application');
+  }
+  return response.json();
+}
+
+// Question Generation
+export async function generateQuestions(
+  sessionId: string,
+  phaseType: 'mcq' | 'coding' | 'speaking' | 'scenario'
+): Promise<GeneratedQuestion[]> {
+  const response = await fetch(`${API_BASE_URL}/agents/generate-questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, phaseType }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to generate questions');
+  }
+  const data = await response.json();
+  return data.questions || [];
+}
+
+// Code Execution
+export async function executeCode(
+  language: string,
+  sourceCode: string,
+  stdin?: string
+): Promise<{ success: boolean; output: string; stdout: string; stderr: string; executionTime?: number }> {
+  const response = await fetch(`${API_BASE_URL}/agents/execute-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language, sourceCode, stdin }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to execute code');
+  }
+  const data = await response.json();
+  return data.result;
+}
+
+// Phase Results & Completion
+export async function submitPhaseResult(
+  token: string,
+  payload: {
+    phaseType: 'mcq' | 'coding' | 'speaking' | 'scenario';
+    rawAnswers: any;
+    subScores?: Record<string, number>;
+    weightedScore: number;
+    aiEvaluation?: string;
+  }
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${token}/phase-result`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to submit phase result');
+  }
+  return response.json();
+}
+
+export async function completeInterview(token: string): Promise<{ message: string; report: ScoreReport }> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${token}/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to complete interview');
+  }
+  return response.json();
+}
+
+export async function fetchSessionReport(token: string): Promise<{
+  session: InterviewSession;
+  report: ScoreReport | null;
+  proctoringEvents: any[];
+  phaseResults: any[];
+}> {
+  const response = await fetch(`${API_BASE_URL}/sessions/${token}/report`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch interview report');
+  }
+  return response.json();
+}
+
+// Proctoring
+export async function logProctoringEvent(payload: {
+  sessionId: string;
+  type: 'tab_switch' | 'copy_paste' | 'webcam_lost' | 'face_absent' | 'multiple_faces' | 'browser_blur';
+  severity?: 'low' | 'medium' | 'high';
+  timestamp?: string;
+  metadata?: Record<string, any>;
+}): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/proctoring/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    return { success: false };
+  }
+  return response.json();
+}
