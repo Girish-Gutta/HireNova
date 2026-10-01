@@ -261,5 +261,42 @@ export const dbStore = {
       if (!error && data) return data;
     }
     return [...inMemoryApplications];
+  },
+
+  async getApplicationById(id: string): Promise<ApplicationRecord | null> {
+    if (isSupabaseConfigured) {
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (!error && data) return data;
+    }
+    const found = inMemoryApplications.find((a) => a.id === id);
+    return found || null;
+  },
+
+  async updateApplication(id: string, updates: Partial<ApplicationRecord>): Promise<ApplicationRecord | null> {
+    const now = new Date().toISOString();
+    if (isSupabaseConfigured) {
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ ...updates, updated_at: now })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) return data;
+    }
+
+    const index = inMemoryApplications.findIndex((a) => a.id === id);
+    if (index === -1) return null;
+    inMemoryApplications[index] = {
+      ...inMemoryApplications[index],
+      ...updates,
+      updated_at: now,
+    };
+    return inMemoryApplications[index];
   }
 };

@@ -4,6 +4,9 @@ import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
 import { jobsRouter } from './routes/jobs.js';
 import { applicationsRouter } from './routes/applications.js';
+import { sessionsRouter } from './routes/sessions.js';
+import { agentsRouter } from './routes/agents.js';
+import { proctoringRouter } from './routes/proctoring.js';
 import { env } from './config/env.js';
 
 export const createApp = (): Express => {
@@ -22,6 +25,9 @@ export const createApp = (): Express => {
   app.use('/api/auth', authRouter);
   app.use('/api/jobs', jobsRouter);
   app.use('/api/applications', applicationsRouter);
+  app.use('/api/sessions', sessionsRouter);
+  app.use('/api/agents', agentsRouter);
+  app.use('/api/proctoring', proctoringRouter);
 
   // Root welcome
   app.get('/', (_req: Request, res: Response) => {

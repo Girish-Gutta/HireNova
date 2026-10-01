@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { dbStore } from '../services/dbStore.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from '../lib/supabase.js';
+import { matchResumeToJD } from '../agents/matchingAgent.js';
 import { z } from 'zod';
 
 export const applicationsRouter = Router();
@@ -99,6 +100,31 @@ applicationsRouter.post('/', async (req: Request, res: Response) => {
       status: 'submitted',
     });
 
+    // Run Matching Agent
+    try {
+      const matchResult = await matchResumeToJD({
+        resumeText: resumeText || `${candidateName || 'Candidate'} resume applying for ${job.title}. Proficient with ${job.required_skills.join(', ')}.`,
+        jobDescription: job.description,
+        requiredSkills: job.required_skills,
+        seniority: job.seniority,
+        jobTitle: job.title,
+      });
+
+      const updated = await dbStore.updateApplication(application.id, {
+        match_score: matchResult.matchScore,
+        match_details: matchResult,
+        status: 'matched',
+      });
+
+      if (updated) {
+        application.match_score = matchResult.matchScore;
+        application.match_details = matchResult;
+        application.status = 'matched';
+      }
+    } catch (matchErr: any) {
+      console.warn('[Applications] Auto-matching failed, saving without score:', matchErr.message);
+    }
+
     res.status(201).json({
       message: 'Application submitted successfully',
       application,
@@ -109,6 +135,42 @@ applicationsRouter.post('/', async (req: Request, res: Response) => {
       error: 'FailedToSubmitApplication',
       message: err.message,
     });
+  }
+});
+
+// POST /api/applications/:id/match - Manually trigger or re-run matching agent
+applicationsRouter.post('/:id/match', async (req: Request, res: Response) => {
+  const appId = req.params.id as string;
+  try {
+    const app = await dbStore.getApplicationById(appId);
+    if (!app) {
+      res.status(404).json({ error: 'NotFound', message: 'Application not found' });
+      return;
+    }
+
+    const job = await dbStore.getJobById(app.job_id);
+    if (!job) {
+      res.status(404).json({ error: 'NotFound', message: 'Job posting not found' });
+      return;
+    }
+
+    const matchResult = await matchResumeToJD({
+      resumeText: app.resume_text || `${app.candidate_name || 'Candidate'} with skills in ${job.required_skills.join(', ')}`,
+      jobDescription: job.description,
+      requiredSkills: job.required_skills,
+      seniority: job.seniority,
+      jobTitle: job.title,
+    });
+
+    const updated = await dbStore.updateApplication(appId, {
+      match_score: matchResult.matchScore,
+      match_details: matchResult,
+      status: 'matched',
+    });
+
+    res.status(200).json({ message: 'Matching complete', application: updated, matchResult });
+  } catch (err: any) {
+    res.status(500).json({ error: 'MatchFailed', message: err.message });
   }
 });
 

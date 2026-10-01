@@ -84,7 +84,7 @@ describe('HireNova Jobs & Applications API (Phase 2)', () => {
     expect(res.status).toBe(201);
     expect(res.body.application).toBeDefined();
     expect(res.body.application.job_id).toBe(createdJobId);
-    expect(res.body.application.status).toBe('submitted');
+    expect(['submitted', 'matched']).toContain(res.body.application.status);
   });
 
   it('GET /api/applications/candidate/:id should return candidate applications', async () => {
