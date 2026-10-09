@@ -7,6 +7,7 @@ import { applicationsRouter } from './routes/applications.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { agentsRouter } from './routes/agents.js';
 import { proctoringRouter } from './routes/proctoring.js';
+import { createRateLimiter } from './middleware/rateLimit.js';
 import { env } from './config/env.js';
 
 export const createApp = (): Express => {
@@ -19,6 +20,12 @@ export const createApp = (): Express => {
   }));
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
+
+  // API rate limiter
+  app.use('/api', createRateLimiter({
+    windowMs: 60 * 1000,
+    maxRequests: 200,
+  }));
 
   // Routes
   app.use('/api/health', healthRouter);
