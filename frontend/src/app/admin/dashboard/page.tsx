@@ -10,21 +10,18 @@ import {
   Plus,
   ArrowUpRight,
   Inbox,
-  Clock,
   Sparkles,
   TrendingUp,
-  Loader2,
-  ExternalLink,
-  Video,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
   fetchJobs,
   fetchAllApplications,
-  fetchSessionByApplication,
   type Job,
   type Application,
 } from '@/lib/api';
+import { SkeletonDashboard } from '@/components/ui/Skeleton';
+import { StatusBadge, MatchScoreBadge } from '@/components/ui/StatusBadge';
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -82,7 +79,10 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-8 max-w-6xl animate-fade-in">
+      {loading && <SkeletonDashboard />}
+      {!loading && (
+        <>
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -190,12 +190,7 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
 
-            {loading ? (
-              <div className="py-16 flex items-center justify-center gap-2 text-xs text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-                <span>Loading recent applications...</span>
-              </div>
-            ) : applications.length === 0 ? (
+            {applications.length === 0 ? (
               <div className="py-12 px-4 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3">
                   <Inbox className="w-6 h-6 text-slate-500" />
@@ -219,28 +214,22 @@ export default function AdminDashboardPage() {
                     key={app.id}
                     className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold text-white">
                           {app.candidate_name || 'Candidate'}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono uppercase">
-                          {app.status.replace('_', ' ')}
-                        </span>
-                        {app.match_score && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
-                            <TrendingUp className="w-2.5 h-2.5" /> {app.match_score}% Fit
-                          </span>
-                        )}
+                        <StatusBadge status={app.status} size="sm" />
+                        <MatchScoreBadge score={app.match_score} />
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {app.candidate_email} • Applied on {new Date(app.created_at).toLocaleDateString()}
+                        {app.candidate_email} &bull; Applied {new Date(app.created_at).toLocaleDateString()}
                       </p>
                     </div>
 
                     <Link
                       href="/admin/candidates"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shrink-0"
                     >
                       <span>Manage</span>
                       <ArrowUpRight className="w-3 h-3" />
@@ -306,6 +295,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

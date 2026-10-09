@@ -33,6 +33,10 @@ healthRouter.get('/', async (_req: Request, res: Response) => {
         configured: Boolean(env.PISTON_API_URL),
         url: env.PISTON_API_URL,
       },
+      emailService: {
+        provider: 'resend',
+        configured: Boolean(env.RESEND_API_KEY && !env.RESEND_API_KEY.includes('placeholder')),
+      },
     },
   });
 });

@@ -14,8 +14,6 @@ import {
   AlertCircle,
   Building2,
   ExternalLink,
-  Loader2,
-  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -23,6 +21,8 @@ import {
   fetchSessionByApplication,
   type Application,
 } from '@/lib/api';
+import { SkeletonDashboard } from '@/components/ui/Skeleton';
+import { StatusBadge, MatchScoreBadge } from '@/components/ui/StatusBadge';
 
 interface AppWithSession {
   application: Application;
@@ -71,7 +71,10 @@ export default function CandidateDashboardPage() {
   const completedSessions = items.filter((i) => i.application.status === 'interview_completed');
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-8 max-w-6xl animate-fade-in">
+      {loading && <SkeletonDashboard />}
+      {!loading && (
+        <>
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -179,12 +182,7 @@ export default function CandidateDashboardPage() {
               </Link>
             </div>
 
-            {loading ? (
-              <div className="py-12 flex justify-center items-center gap-2 text-xs text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                <span>Loading your applications...</span>
-              </div>
-            ) : items.length === 0 ? (
+            {items.length === 0 ? (
               <div className="py-12 px-4 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3">
                   <FileText className="w-6 h-6 text-slate-500" />
@@ -213,19 +211,13 @@ export default function CandidateDashboardPage() {
                       key={app.id}
                       className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-bold text-white">
                             {app.jobs?.title || `Position #${app.job_id.substring(0, 8)}`}
                           </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono uppercase">
-                            {app.status.replace('_', ' ')}
-                          </span>
-                          {app.match_score && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
-                              <TrendingUp className="w-2.5 h-2.5" /> {app.match_score}% Match
-                            </span>
-                          )}
+                          <StatusBadge status={app.status} size="sm" />
+                          <MatchScoreBadge score={app.match_score} />
                         </div>
 
                         <div className="text-xs text-slate-400 flex items-center gap-2">
@@ -336,6 +328,8 @@ export default function CandidateDashboardPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
