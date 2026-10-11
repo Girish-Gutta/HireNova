@@ -1,0 +1,7 @@
+
+> hirenova-backend@0.1.0 dev
+> tsx watch src/index.ts
+
+🚀 HireNova Backend listening on port 5000 (development)
+📡 Health Check: http://localhost:5000/api/health
+[ExpiryJob] Scheduled interview session expiry job (every 30m)
